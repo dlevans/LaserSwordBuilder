@@ -1,300 +1,192 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Saber Customizer - Fixed Camera Reset</title>
+    <title>Sith or Jedi Quiz</title>
     <style>
-        body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
-        canvas { display: block; }
-        #ui { 
-            position: absolute; top: 10px; left: 10px; z-index: 10; 
-            background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; 
-            width: 240px; max-height: 90vh; overflow-y: auto; border: 1px solid #444;
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 40px auto; padding: 20px; line-height: 1.6; background-color: #121212; color: #e0e0e0; }
+        .quiz-card { background: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
+        
+        /* Live Debug Counter */
+        .debug-counter { 
+            position: sticky; top: 10px; background: #2c3e50; color: white; 
+            padding: 15px; border-radius: 8px; margin-bottom: 20px; 
+            display: flex; justify-content: space-around; font-weight: bold; border: 1px solid #444;
         }
+        .debug-item span { color: #f1c40f; font-size: 1.2em; }
+
+        .question { margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .hidden { display: none; }
         
-        .cat-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin: 15px 0 5px 0; border-bottom: 1px solid #333; padding-bottom: 5px;
-        }
-        h3 { margin: 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+        label { cursor: pointer; display: block; margin: 10px 0; padding: 10px; border-radius: 6px; background: #2a2a2a; transition: 0.2s; }
+        label:hover { background-color: #3a3a3a; }
         
-        button { 
-            display: block; width: 100%; margin: 5px 0; padding: 10px; 
-            cursor: pointer; background: #333; color: white; 
-            border: 1px solid #555; border-radius: 4px; text-align: left; font-size: 12px;
-        }
-        button:hover { background: #555; border-color: #0f0; }
-        button.active-part { border-color: #0f0; color: #0f0; background: #2a3a2a; }
-        
-        .color-wrapper { display: flex; align-items: center; gap: 5px; }
-        .color-picker { width: 30px; height: 25px; padding: 0; border: 1px solid #555; background: none; cursor: pointer; border-radius: 4px; }
-        
-        .toggle-btn { display: block; width: 100%; background: #222; border: 1px solid #0f0; color: #0f0; text-align: center; font-weight: bold; margin-bottom: 20px; padding: 10px; cursor: pointer; }
-        .toggle-btn.active { background: #0f0; color: #000; }
+        button { background-color: #3498db; color: white; border: none; padding: 15px 24px; cursor: pointer; border-radius: 6px; font-size: 18px; width: 100%; font-weight: bold; text-transform: uppercase; }
+        button:hover { background-color: #2980b9; }
+
+        /* Results Styles */
+        #result-container { text-align: center; }
+        #result-image { width: 100%; border-radius: 8px; border: 2px solid #444; margin: 20px 0; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        #result-title { font-size: 2em; margin-bottom: 10px; color: #fff; }
+        #saber-link { display: inline-block; margin-top: 20px; padding: 15px 30px; background: #e74c3c; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.2em; transition: 0.3s; }
+        #saber-link:hover { transform: scale(1.05); box-shadow: 0 0 15px #e74c3c; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <button id="rotateToggle" class="toggle-btn" onclick="toggleRotation()">ROTATE: OFF</button>
-
-        <div class="category">
-            <div class="cat-header">
-                <h3>Emitters</h3>
-                <div class="color-wrapper">
-                    <input type="color" value="#ffffff" class="color-picker" 
-                           oninput="updateSectionColor('emitter', this.value)" 
-                           onmousedown="focusPart('emitter')" 
-                           onchange="resetView()">
-                </div>
-            </div>
-            <button onclick="loadPart('emitter', 'CereXRGBXeno/GLB/CRE_Emitter.glb', this)">CRE Emitter</button>
-            <button onclick="loadPart('emitter', 'DutyandResolveXRGBXeno/GLB/DR_Emitter.glb', this)">DR Emitter</button>
+    <div class="quiz-card">
+        <div class="debug-counter" id="debug-bar">
+            <div class="debug-item">Jedi: <span id="jedi-count">0</span></div>
+            <div class="debug-item">Gray: <span id="gray-count">0</span></div>
+            <div class="debug-item">Sith: <span id="sith-count">0</span></div>
         </div>
 
-        <div class="category">
-            <div class="cat-header">
-                <h3>Switches</h3>
-                <div class="color-wrapper">
-                    <input type="color" value="#ffffff" class="color-picker" 
-                           oninput="updateSectionColor('switch', this.value)" 
-                           onmousedown="focusPart('switch')" 
-                           onchange="resetView()">
-                </div>
-            </div>
-            <button onclick="loadPart('switch', 'CereXRGBXeno/GLB/CRE_Switch.glb', this)">CRE Switch</button>
-            <button onclick="loadPart('switch', 'DutyandResolveXRGBXeno/GLB/DR_Switch_I.glb', this)">DR Switch I</button>
+        <div id="quiz-ui">
+            <h1>Force Alignment Test</h1>
+            <div id="quiz-container"></div>
+            <button id="submit-btn">Reveal My Path</button>
         </div>
 
-        <div class="category">
-            <div class="cat-header">
-                <h3>Sleeves</h3>
-                <div class="color-wrapper">
-                    <input type="color" value="#ffffff" class="color-picker" 
-                           oninput="updateSectionColor('sleeve', this.value)" 
-                           onmousedown="focusPart('sleeve')" 
-                           onchange="resetView()">
-                </div>
-            </div>
-            <button onclick="loadPart('sleeve', 'CereXRGBXeno/GLB/CRE_Sleeve_Wrapped.glb', this)">CRE Wrapped</button>
-            <button onclick="loadPart('sleeve', 'DutyandResolveXRGBXeno/GLB/DR_Sleeve_I.glb', this)">DR Sleeve I</button>
-        </div>
-
-        <div class="category">
-            <div class="cat-header">
-                <h3>Pommels</h3>
-                <div class="color-wrapper">
-                    <input type="color" value="#ffffff" class="color-picker" 
-                           oninput="updateSectionColor('pommel', this.value)" 
-                           onmousedown="focusPart('pommel')" 
-                           onchange="resetView()">
-                </div>
-            </div>
-            <button onclick="loadPart('pommel', 'CereXRGBXeno/GLB/CRE_Pommel.glb', this)">CRE Pommel</button>
-            <button onclick="loadPart('pommel', 'DutyandResolveXRGBXeno/GLB/DR_Pommel.glb', this)">DR Pommel</button>
+        <div id="result-container" class="hidden">
+            <h2 id="result-title"></h2>
+            <img id="result-image" src="" alt="Your Path">
+            <p id="result-text"></p>
+            <a id="saber-link" href="/sabers"></a>
+            <p><button onclick="location.reload()" style="background:none; border:1px solid #555; margin-top:30px; font-size:14px; width:auto;">Restart Quiz</button></p>
         </div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    <script>
+        const quizData = [
+            {
+                q: "Someone has done you wrong. Do you seek revenge?",
+                options: [
+                    { text: "Karma comes for us all eventually.", weight: 2 },
+					{ text: "No, I choose forgiveness.", weight: 1 },
+                    { text: "Yes, they must feel my wrath.", weight: 3 }
+                ]
+            },
+            {
+                q: "Your friend stole the answer key to a test. What do you do?",
+                options: [
+                    { text: "Report them to the instructor.", weight: 1 },
+                    { text: "Use the answer key for my own benefit.", weight: 3 },
+					{ text: "Don't say anything, but don't cheat either.", weight: 2 }                    
+                ]
+            },
+            {
+                q: "What do you want most out of life?",
+                options: [
+                    { text: "The freedom to live by my own rules.", weight: 2 },
+					{ text: "To bring peace and order to the galaxy.", weight: 1 },                    
+                    { text: "To be powerful enough to never be controlled.", weight: 3 }
+                ]
+            },
+            {
+                q: "A conflict breaks out near you. Your first instinct is to:",
+                options: [
+                    { text: "Strike first to end it on my terms.", weight: 3 },
+					{ text: "De-escalate and protect the innocent.", weight: 1 },
+                    { text: "Wait and see which side is right.", weight: 2 }                  
+                ]
+            },
+            {
+                q: "How do you feel about this: 'I put myself before anyone or anything else.'",
+                options: [
+                    { text: "I completely disagree; I live for others.", weight: 1 },
+                    { text: "I agree to an extent; self-preservation matters.", weight: 2 },
+                    { text: "I completely agree; only the strong survive.", weight: 3 }
+                ]
             }
-        }
-    </script>
+        ];
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        const container = document.getElementById('quiz-container');
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111111);
-        
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-        
-        // --- FIXED HARDCODED DEFAULTS ---
-        const defaultCamPos = new THREE.Vector3(0, 0, 310); 
-        const defaultTarget = new THREE.Vector3(0, 0, 0);
-        
-        camera.position.copy(defaultCamPos);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 3.0);
-        dirLight.position.set(-100, -35, 10);
-        camera.add(dirLight);
-        scene.add(camera);
-
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.copy(defaultTarget); 
-        controls.enablePan = false; 
-
-        const loader = new GLTFLoader();
-        const GAP = 8.0;
-        const SLEEVE_BASE = -54.0;
-        
-        const activeParts = { emitter: null, switch: null, sleeve: null, pommel: null };
-        const sectionColors = { emitter: '#ffffff', switch: '#ffffff', sleeve: '#ffffff', pommel: '#ffffff' };
-        
-        let rotationActive = false;
-        let isUserInteracting = false;
-        
-        // These are the "Current Targets" for the smooth lerp
-        let targetCamPos = defaultCamPos.clone();
-        let targetControlPos = defaultTarget.clone();
-
-        controls.addEventListener('start', () => { isUserInteracting = true; });
-        controls.addEventListener('end', () => { 
-            isUserInteracting = false; 
-            // CRITICAL FIX: We no longer overwrite targetCamPos here.
-            // This allows the reset function to still know where "Home" is.
+        // Render Questions
+        quizData.forEach((item, index) => {
+            let html = `<div class="question">
+                <p><strong>${index + 1}. ${item.q}</strong></p>`;
+            item.options.forEach((opt) => {
+                html += `<label>
+                    <input type="radio" name="q${index}" value="${opt.weight}" class="quiz-radio"> ${opt.text}
+                </label>`;
+            });
+            html += `</div>`;
+            container.innerHTML += html;
         });
 
-        window.toggleRotation = function() {
-            rotationActive = !rotationActive;
-            const btn = document.getElementById('rotateToggle');
-            btn.innerText = rotationActive ? "ROTATE: ON" : "ROTATE: OFF";
-            btn.classList.toggle('active');
-        };
-
-        window.updateSectionColor = function(type, hex) {
-            sectionColors[type] = hex;
-            if (activeParts[type]) {
-                activeParts[type].traverse((child) => {
-                    if (child.isMesh) child.material.color.set(hex);
+        // Live Counter logic
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('quiz-radio')) {
+                let j = 0, g = 0, s = 0;
+                document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                    if (radio.value == "1") j++;
+                    if (radio.value == "2") g++;
+                    if (radio.value == "3") s++;
                 });
+                document.getElementById('jedi-count').innerText = j;
+                document.getElementById('gray-count').innerText = g;
+                document.getElementById('sith-count').innerText = s;
             }
-        };
+        });
 
-        window.focusPart = function(type) {
-            if (!activeParts[type]) return;
-            isUserInteracting = false; 
-            const box = new THREE.Box3().setFromObject(activeParts[type]);
-            const center = new THREE.Vector3();
-            box.getCenter(center);
-            
-            targetControlPos.set(0, center.y, 0);
-            targetCamPos.set(0, center.y, 150);
-        };
-
-        window.resetView = function() {
-            isUserInteracting = false; 
-            // Force return to the original hardcoded values
-            targetCamPos.copy(defaultCamPos);
-            targetControlPos.copy(defaultTarget);
-        };
-
-        function centerPart(part) {
-            part.position.set(0,0,0);
-            part.updateMatrixWorld();
-            const box = new THREE.Box3().setFromObject(part);
-            const centerX = (box.max.x + box.min.x) / 2;
-            const centerZ = (box.max.z + box.min.z) / 2;
-            part.position.x = -centerX;
-            part.position.z = -centerZ;
-        }
-
-        function updateAllPositions() {
-            // We use fixed offsets relative to the world center (0) 
-            // so pieces stay spaced out even if the middle ones are missing.
-            
-            // 1. Position Switch (The Center Anchor)
-            if (activeParts.switch) {
-                centerPart(activeParts.switch);
-                const swBox = new THREE.Box3().setFromObject(activeParts.switch);
-                // Move switch so its bottom is at Y = 0
-                activeParts.switch.position.y = -swBox.min.y;
+        // Submit logic
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            const selections = document.querySelectorAll('input[type="radio"]:checked');
+            if (selections.length < quizData.length) {
+                alert("The Council requires all answers before a verdict!");
+                return;
             }
 
-            // 2. Position Sleeve (Below Switch)
-            if (activeParts.sleeve) {
-                centerPart(activeParts.sleeve);
-                const slBox = new THREE.Box3().setFromObject(activeParts.sleeve);
-                // Position top of sleeve GAP distance below the switch area (0)
-                activeParts.sleeve.position.y = -GAP - slBox.max.y;
-            }
+            let totalPoints = 0;
+            selections.forEach(choice => totalPoints += parseInt(choice.value));
+            const average = totalPoints / quizData.length;
 
-            // 3. Position Emitter (Above Switch)
-            if (activeParts.emitter) {
-                centerPart(activeParts.emitter);
-                const eBox = new THREE.Box3().setFromObject(activeParts.emitter);
-                
-                // Calculate where the top of the switch would be
-                let switchTop = 0;
-                if (activeParts.switch) {
-                    switchTop = new THREE.Box3().setFromObject(activeParts.switch).max.y;
-                } else {
-                    switchTop = 40; // Default height of a switch if missing
+            const results = {
+                jedi: {
+                    title: "JEDI KNIGHT",
+                    desc: "You are a beacon of light. Your path is one of peace and service.",
+                    btn: "Complete Your Training",
+                    color: "#3498db",
+                    img: "http://googleusercontent.com/image_collection/image_retrieval/11569029331805748487_0",
+                    type: "jedi"
+                },
+                gray: {
+                    title: "GRAY JEDI",
+                    desc: "You walk the thin line of balance, fulfilling your own destiny.",
+                    btn: "Fulfill Your Destiny",
+                    color: "#f1c40f",
+                    img: "http://googleusercontent.com/image_collection/image_retrieval/17822493611224644530_1",
+                    type: "gray"
+                },
+                sith: {
+                    title: "SITH LORD",
+                    desc: "Your passion has freed you. Embrace the power of the dark side.",
+                    btn: "Embrace Your Power",
+                    color: "#e74c3c",
+                    img: "http://googleusercontent.com/image_collection/image_retrieval/15068507112781759033_0",
+                    type: "sith"
                 }
-                
-                activeParts.emitter.position.y = (switchTop + GAP) - eBox.min.y;
-            }
+            };
 
-            // 4. Position Pommel (Bottom-most)
-            if (activeParts.pommel) {
-                centerPart(activeParts.pommel);
-                const pBox = new THREE.Box3().setFromObject(activeParts.pommel);
-                
-                // Calculate where the bottom of the sleeve would be
-                let sleeveBottom = -GAP;
-                if (activeParts.sleeve) {
-                    sleeveBottom = new THREE.Box3().setFromObject(activeParts.sleeve).min.y;
-                } else {
-                    sleeveBottom = -60; // Default bottom of a sleeve if missing
-                }
-                
-                activeParts.pommel.position.y = (sleeveBottom - GAP) - pBox.max.y;
-            }
-        }
+            let fate = average <= 1.4 ? results.jedi : (average <= 2.4 ? results.gray : results.sith);
 
-        window.loadPart = function(type, path, btnElement) {
-            const category = btnElement.parentElement;
-            category.querySelectorAll('button').forEach(btn => btn.classList.remove('active-part'));
-            btnElement.classList.add('active-part');
+            // UI Transitions
+            document.getElementById('quiz-ui').classList.add('hidden');
+            document.getElementById('debug-bar').classList.add('hidden');
             
-            if (activeParts[type]) scene.remove(activeParts[type]);
-            loader.load(path, (gltf) => {
-                const model = gltf.scene;
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        child.material.color.set(sectionColors[type]);
-                        child.material.metalness = 0.5;
-                        child.material.roughness = 0.7;
-                    }
-                });
-                activeParts[type] = model;
-                scene.add(model);
-                updateAllPositions();
-            });
-        };
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (!isUserInteracting) {
-                camera.position.lerp(targetCamPos, 0.05);
-                controls.target.lerp(targetControlPos, 0.05);
-            }
-
-            if (rotationActive) {
-                Object.values(activeParts).forEach(part => {
-                    if (part) part.rotation.y += 0.01;
-                });
-            }
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            const container = document.getElementById('result-container');
+            container.classList.remove('hidden');
+            document.getElementById('result-title').innerText = fate.title;
+            document.getElementById('result-title').style.color = fate.color;
+            document.getElementById('result-image').src = fate.img;
+            document.getElementById('result-text').innerText = fate.desc;
+            
+            const link = document.getElementById('saber-link');
+            link.innerText = fate.btn;
+            link.style.backgroundColor = fate.color;
+            
+            // Fixed: Removed leading slash and added .html extension
+            link.href = `sabers.html?type=${fate.type}`;
         });
     </script>
 </body>

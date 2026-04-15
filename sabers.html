@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Saber Customizer - Fixed Camera Reset</title>
+    <style>
+        /* Existing Styles */
+        body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { display: block; }
+        #ui { 
+            position: absolute; top: 10px; left: 10px; z-index: 10; 
+            background: rgba(0,0,0,0.85); padding: 20px; border-radius: 10px; 
+            width: 240px; max-height: 90vh; overflow-y: auto; border: 1px solid #444;
+        }
+        
+        /* NEW: Result Title Style */
+        #path-title { 
+            font-size: 18px; font-weight: bold; text-align: center; 
+            margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .cat-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin: 15px 0 5px 0; border-bottom: 1px solid #333; padding-bottom: 5px;
+        }
+        h3 { margin: 0; font-size: 14px; color: #aaa; text-transform: uppercase; }
+        
+        button { 
+            display: block; width: 100%; margin: 5px 0; padding: 10px; 
+            cursor: pointer; background: #333; color: white; 
+            border: 1px solid #555; border-radius: 4px; text-align: left; font-size: 12px;
+        }
+        button:hover { background: #555; border-color: #0f0; }
+        button.active-part { border-color: #0f0; color: #0f0; background: #2a3a2a; }
+        
+        .color-wrapper { display: flex; align-items: center; gap: 5px; }
+        .color-picker { width: 30px; height: 25px; padding: 0; border: 1px solid #555; background: none; cursor: pointer; border-radius: 4px; }
+        
+        .toggle-btn { display: block; width: 100%; background: #222; border: 1px solid #0f0; color: #0f0; text-align: center; font-weight: bold; margin-bottom: 20px; padding: 10px; cursor: pointer; }
+        .toggle-btn.active { background: #0f0; color: #000; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div id="path-title">Saber Customizer</div>
+
+        <button id="rotateToggle" class="toggle-btn" onclick="toggleRotation()">ROTATE: OFF</button>
+
+        <div class="category">
+            <div class="cat-header">
+                <h3>Emitters</h3>
+                <div class="color-wrapper">
+                    <input type="color" value="#ffffff" class="color-picker" 
+                           oninput="updateSectionColor('emitter', this.value)" 
+                           onmousedown="focusPart('emitter')" 
+                           onchange="resetView()">
+                </div>
+            </div>
+            <button onclick="loadPart('emitter', 'CereXRGBXeno/GLB/CRE_Emitter.glb', this)">CRE Emitter</button>
+            <button onclick="loadPart('emitter', 'DutyandResolveXRGBXeno/GLB/DR_Emitter.glb', this)">DR Emitter</button>
+        </div>
+
+        <div class="category">
+            <div class="cat-header">
+                <h3>Switches</h3>
+                <div class="color-wrapper">
+                    <input type="color" value="#ffffff" class="color-picker" 
+                           oninput="updateSectionColor('switch', this.value)" 
+                           onmousedown="focusPart('switch')" 
+                           onchange="resetView()">
+                </div>
+            </div>
+            <button onclick="loadPart('switch', 'CereXRGBXeno/GLB/CRE_Switch.glb', this)">CRE Switch</button>
+            <button onclick="loadPart('switch', 'DutyandResolveXRGBXeno/GLB/DR_Switch_I.glb', this)">DR Switch I</button>
+        </div>
+
+        <div class="category">
+            <div class="cat-header">
+                <h3>Sleeves</h3>
+                <div class="color-wrapper">
+                    <input type="color" value="#ffffff" class="color-picker" 
+                           oninput="updateSectionColor('sleeve', this.value)" 
+                           onmousedown="focusPart('sleeve')" 
+                           onchange="resetView()">
+                </div>
+            </div>
+            <button onclick="loadPart('sleeve', 'CereXRGBXeno/GLB/CRE_Sleeve_Wrapped.glb', this)">CRE Wrapped</button>
+            <button onclick="loadPart('sleeve', 'DutyandResolveXRGBXeno/GLB/DR_Sleeve_I.glb', this)">DR Sleeve I</button>
+        </div>
+
+        <div class="category">
+            <div class="cat-header">
+                <h3>Pommels</h3>
+                <div class="color-wrapper">
+                    <input type="color" value="#ffffff" class="color-picker" 
+                           oninput="updateSectionColor('pommel', this.value)" 
+                           onmousedown="focusPart('pommel')" 
+                           onchange="resetView()">
+                </div>
+            </div>
+            <button onclick="loadPart('pommel', 'CereXRGBXeno/GLB/CRE_Pommel.glb', this)">CRE Pommel</button>
+            <button onclick="loadPart('pommel', 'DutyandResolveXRGBXeno/GLB/DR_Pommel.glb', this)">DR Pommel</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+        const defaultCamPos = new THREE.Vector3(0, 0, 310); 
+        const defaultTarget = new THREE.Vector3(0, 0, 0);
+        camera.position.copy(defaultCamPos);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 3.0);
+        dirLight.position.set(-100, -35, 10);
+        camera.add(dirLight);
+        scene.add(camera);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.copy(defaultTarget); 
+        controls.enablePan = false; 
+
+        const loader = new GLTFLoader();
+        const GAP = 8.0;
+        const activeParts = { emitter: null, switch: null, sleeve: null, pommel: null };
+        const sectionColors = { emitter: '#ffffff', switch: '#ffffff', sleeve: '#ffffff', pommel: '#ffffff' };
+        
+        let rotationActive = false;
+        let isUserInteracting = false;
+        let targetCamPos = defaultCamPos.clone();
+        let targetControlPos = defaultTarget.clone();
+
+        // --- NEW: URL PARAMETER THEMING LOGIC ---
+        function applyPathTheme() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const path = urlParams.get('type');
+            const titleEl = document.getElementById('path-title');
+            
+            const themes = {
+                'jedi': { title: 'Jedi Forge', color: '#3498db', bg: '#000b1a' },
+                'sith': { title: 'Sith Armory', color: '#e74c3c', bg: '#1a0000' },
+                'gray': { title: 'Balanced Forge', color: '#f1c40f', bg: '#121212' }
+            };
+
+            if (path && themes[path]) {
+                const theme = themes[path];
+                titleEl.innerText = theme.title;
+                titleEl.style.color = theme.color;
+                scene.background = new THREE.Color(theme.bg);
+                
+                // Update CSS variables for UI borders/accents
+                document.querySelectorAll('.toggle-btn, button.active-part').forEach(el => {
+                    el.style.borderColor = theme.color;
+                    if(el.classList.contains('active-part')) el.style.color = theme.color;
+                });
+            }
+        }
+        applyPathTheme();
+
+        // --- Standard Saber Logic (Unchanged) ---
+        controls.addEventListener('start', () => { isUserInteracting = true; });
+        controls.addEventListener('end', () => { isUserInteracting = false; });
+
+        window.toggleRotation = function() {
+            rotationActive = !rotationActive;
+            const btn = document.getElementById('rotateToggle');
+            btn.innerText = rotationActive ? "ROTATE: ON" : "ROTATE: OFF";
+            btn.classList.toggle('active');
+        };
+
+        window.updateSectionColor = function(type, hex) {
+            sectionColors[type] = hex;
+            if (activeParts[type]) {
+                activeParts[type].traverse((child) => {
+                    if (child.isMesh) child.material.color.set(hex);
+                });
+            }
+        };
+
+        window.focusPart = function(type) {
+            if (!activeParts[type]) return;
+            isUserInteracting = false; 
+            const box = new THREE.Box3().setFromObject(activeParts[type]);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            targetControlPos.set(0, center.y, 0);
+            targetCamPos.set(0, center.y, 150);
+        };
+
+        window.resetView = function() {
+            isUserInteracting = false; 
+            targetCamPos.copy(defaultCamPos);
+            targetControlPos.copy(defaultTarget);
+        };
+
+        function centerPart(part) {
+            part.position.set(0,0,0);
+            part.updateMatrixWorld();
+            const box = new THREE.Box3().setFromObject(part);
+            const centerX = (box.max.x + box.min.x) / 2;
+            const centerZ = (box.max.z + box.min.z) / 2;
+            part.position.x = -centerX;
+            part.position.z = -centerZ;
+        }
+
+        function updateAllPositions() {
+            if (activeParts.switch) {
+                centerPart(activeParts.switch);
+                const swBox = new THREE.Box3().setFromObject(activeParts.switch);
+                activeParts.switch.position.y = -swBox.min.y;
+            }
+            if (activeParts.sleeve) {
+                centerPart(activeParts.sleeve);
+                const slBox = new THREE.Box3().setFromObject(activeParts.sleeve);
+                activeParts.sleeve.position.y = -GAP - slBox.max.y;
+            }
+            if (activeParts.emitter) {
+                centerPart(activeParts.emitter);
+                const eBox = new THREE.Box3().setFromObject(activeParts.emitter);
+                let switchTop = activeParts.switch ? new THREE.Box3().setFromObject(activeParts.switch).max.y : 40;
+                activeParts.emitter.position.y = (switchTop + GAP) - eBox.min.y;
+            }
+            if (activeParts.pommel) {
+                centerPart(activeParts.pommel);
+                const pBox = new THREE.Box3().setFromObject(activeParts.pommel);
+                let sleeveBottom = activeParts.sleeve ? new THREE.Box3().setFromObject(activeParts.sleeve).min.y : -60;
+                activeParts.pommel.position.y = (sleeveBottom - GAP) - pBox.max.y;
+            }
+        }
+
+        window.loadPart = function(type, path, btnElement) {
+            const category = btnElement.parentElement;
+            category.querySelectorAll('button').forEach(btn => btn.classList.remove('active-part'));
+            btnElement.classList.add('active-part');
+            
+            // Re-apply theme color to the active-part border
+            const urlParams = new URLSearchParams(window.location.search);
+            const pathType = urlParams.get('type');
+            if (pathType === 'jedi') btnElement.style.borderColor = '#3498db';
+            if (pathType === 'sith') btnElement.style.borderColor = '#e74c3c';
+            if (pathType === 'gray') btnElement.style.borderColor = '#f1c40f';
+
+            if (activeParts[type]) scene.remove(activeParts[type]);
+            loader.load(path, (gltf) => {
+                const model = gltf.scene;
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material.color.set(sectionColors[type]);
+                        child.material.metalness = 0.5;
+                        child.material.roughness = 0.7;
+                    }
+                });
+                activeParts[type] = model;
+                scene.add(model);
+                updateAllPositions();
+            });
+        };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isUserInteracting) {
+                camera.position.lerp(targetCamPos, 0.05);
+                controls.target.lerp(targetControlPos, 0.05);
+            }
+            if (rotationActive) {
+                Object.values(activeParts).forEach(part => {
+                    if (part) part.rotation.y += 0.01;
+                });
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
