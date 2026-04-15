@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saber Forge - Pro Customizer</title>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        canvas { display: block; }
+
+        /* --- Bottom Color Bar --- */
+        #color-bar {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px 0;
+            pointer-events: auto;
+            z-index: 100;
+        }
+
+        .color-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .color-item label { font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 2px; }
+        
+        .swatch {
+            width: 35px; height: 35px; border-radius: 4px; border: 1px solid #444;
+            cursor: pointer; overflow: hidden; position: relative;
+            transition: transform 0.2s;
+        }
+        .swatch:hover { transform: scale(1.1); border-color: #0f0; }
+        .swatch input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        
+        .hex-val { font-family: monospace; font-size: 11px; color: #0f0; margin-top: 2px; }
+
+        /* --- Side Navigation --- */
+        #gui {
+            position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 100px);
+            pointer-events: none; display: flex; flex-direction: column; justify-content: center;
+        }
+
+        .part-row { display: flex; justify-content: space-between; align-items: center; padding: 0 6%; margin: 15px 0; }
+        .nav-group { display: flex; align-items: center; gap: 20px; pointer-events: auto; }
+
+        .part-name { 
+            font-size: 26px; font-weight: 900; text-transform: uppercase; 
+            letter-spacing: 3px; text-align: right; min-width: 250px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .arrow {
+            background: none; border: none; color: white; font-size: 70px;
+            cursor: pointer; transition: 0.2s; font-family: serif;
+        }
+        .arrow:hover { color: #0f0; transform: scale(1.2); }
+
+        /* --- Header & Utils --- */
+        #header {
+            position: absolute; top: 25px; width: 100%; text-align: center;
+            text-transform: uppercase; letter-spacing: 12px; color: #0f0;
+            font-size: 20px; font-weight: bold; pointer-events: none;
+        }
+
+        #top-utils { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; pointer-events: auto; }
+        .util-btn {
+            background: rgba(0,0,0,0.6); border: 1px solid #444; color: #aaa;
+            padding: 8px 15px; font-size: 11px; cursor: pointer; text-transform: uppercase;
+            border-radius: 2px;
+        }
+        .util-btn:hover { border-color: #0f0; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="header">SABER DESTINY</div>
+
+    <div id="top-utils">
+        <button id="rotBtn" class="util-btn" onclick="toggleRotation()">Rotate: OFF</button>
+        <button class="util-btn" onclick="resetView()">Reset View</button>
+    </div>
+
+    <div id="gui">
+        <div class="part-row">
+            <div class="nav-group"><button class="arrow" onclick="cyclePart('emitter', -1)">&#12296;</button></div>
+            <div class="nav-group"><span class="part-name" id="emitter-label">Emitter</span><button class="arrow" onclick="cyclePart('emitter', 1)">&#12297;</button></div>
+        </div>
+        <div class="part-row">
+            <div class="nav-group"><button class="arrow" onclick="cyclePart('switch', -1)">&#12296;</button></div>
+            <div class="nav-group"><span class="part-name" id="switch-label">Switch</span><button class="arrow" onclick="cyclePart('switch', 1)">&#12297;</button></div>
+        </div>
+        <div class="part-row">
+            <div class="nav-group"><button class="arrow" onclick="cyclePart('sleeve', -1)">&#12296;</button></div>
+            <div class="nav-group"><span class="part-name" id="sleeve-label">Sleeve</span><button class="arrow" onclick="cyclePart('sleeve', 1)">&#12297;</button></div>
+        </div>
+        <div class="part-row">
+            <div class="nav-group"><button class="arrow" onclick="cyclePart('pommel', -1)">&#12296;</button></div>
+            <div class="nav-group"><span class="part-name" id="pommel-label">Pommel</span><button class="arrow" onclick="cyclePart('pommel', 1)">&#12297;</button></div>
+        </div>
+    </div>
+
+    <div id="color-bar">
+        <div class="color-item">
+            <label>Emitter</label>
+            <div class="swatch" id="sw-emitter" style="background-color: #ffffff;"><input type="color" value="#ffffff" oninput="applyColor('emitter', this.value)"></div>
+            <span class="hex-val" id="hex-emitter">#FFFFFF</span>
+        </div>
+        <div class="color-item">
+            <label>Switch</label>
+            <div class="swatch" id="sw-switch" style="background-color: #ffffff;"><input type="color" value="#ffffff" oninput="applyColor('switch', this.value)"></div>
+            <span class="hex-val" id="hex-switch">#FFFFFF</span>
+        </div>
+        <div class="color-item">
+            <label>Sleeve</label>
+            <div class="swatch" id="sw-sleeve" style="background-color: #ffffff;"><input type="color" value="#ffffff" oninput="applyColor('sleeve', this.value)"></div>
+            <span class="hex-val" id="hex-sleeve">#FFFFFF</span>
+        </div>
+        <div class="color-item">
+            <label>Pommel</label>
+            <div class="swatch" id="sw-pommel" style="background-color: #ffffff;"><input type="color" value="#ffffff" oninput="applyColor('pommel', this.value)"></div>
+            <span class="hex-val" id="hex-pommel">#FFFFFF</span>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const PART_DATA = {
+            emitter: [{ name: "CRE Emitter", path: 'CereXRGBXeno/GLB/CRE_Emitter.glb' }, { name: "DR Emitter", path: 'DutyandResolveXRGBXeno/GLB/DR_Emitter.glb' }],
+            switch: [{ name: "DR Switch I", path: 'DutyandResolveXRGBXeno/GLB/DR_Switch_I.glb' }, { name: "PC Switch I", path: 'PC/GLB/PC_Switch_I.glb' }, { name: "CRE Switch", path: 'CereXRGBXeno/GLB/CRE_Switch.glb' }],
+            sleeve: [{ name: "DR Sleeve I", path: 'DutyandResolveXRGBXeno/GLB/DR_Sleeve_I.glb' }, { name: "CRE Wrapped", path: 'CereXRGBXeno/GLB/CRE_Sleeve_Wrapped.glb' }],
+            pommel: [{ name: "DR Pommel", path: 'DutyandResolveXRGBXeno/GLB/DR_Pommel.glb' }, { name: "CRE Pommel", path: 'CereXRGBXeno/GLB/CRE_Pommel.glb' }]
+        };
+
+        const activeIndices = { emitter: 0, switch: 0, sleeve: 0, pommel: 0 };
+        const activeParts = { emitter: null, switch: null, sleeve: null, pommel: null };
+        const activeColors = { emitter: '#ffffff', switch: '#ffffff', sleeve: '#ffffff', pommel: '#ffffff' };
+        
+        // --- Spacing Constant ---
+        const GAP = 2.0; 
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 50, 450); // Adjusted for better hilt framing
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+        dirLight.position.set(100, 100, 100);
+        scene.add(dirLight);
+
+        const loader = new GLTFLoader();
+
+        window.applyColor = function(type, hex) {
+            activeColors[type] = hex;
+            document.getElementById(`hex-${type}`).innerText = hex.toUpperCase();
+            document.getElementById(`sw-${type}`).style.backgroundColor = hex;
+
+            if (activeParts[type]) {
+                activeParts[type].traverse(child => {
+                    if (child.isMesh && !child.material.map) child.material.color.set(hex);
+                });
+            }
+        };
+
+        window.cyclePart = function(category, dir) {
+            activeIndices[category] = (activeIndices[category] + dir + PART_DATA[category].length) % PART_DATA[category].length;
+            loadPart(category);
+        };
+
+        function loadPart(category) {
+            const data = PART_DATA[category][activeIndices[category]];
+            document.getElementById(`${category}-label`).innerText = data.name;
+
+            loader.load(data.path, (gltf) => {
+                if (activeParts[category]) scene.remove(activeParts[category]);
+                activeParts[category] = gltf.scene;
+                
+                activeParts[category].traverse(child => {
+                    if (child.isMesh && !child.material.map) {
+                        child.material.color.set(activeColors[category]);
+                        child.material.metalness = 0.8;
+                        child.material.roughness = 0.2;
+                    }
+                });
+
+                scene.add(gltf.scene);
+                updateAllPositions();
+            });
+        }
+
+        function updateAllPositions() {
+            // Helper to get fresh bounds
+            const getBounds = (obj) => {
+                const box = new THREE.Box3().setFromObject(obj);
+                return { min: box.min.y, max: box.max.y, center: new THREE.Vector3() };
+            };
+
+            // Reset and Center X/Z for all
+            Object.values(activeParts).forEach(p => {
+                if(!p) return;
+                const box = new THREE.Box3().setFromObject(p);
+                const centerX = (box.max.x + box.min.x) / 2;
+                const centerZ = (box.max.z + box.min.z) / 2;
+                p.position.x = -centerX;
+                p.position.z = -centerZ;
+                p.position.y = 0; // Temp reset
+            });
+
+            // Anchor point is the Switch
+            if (activeParts.switch) {
+                const swBounds = getBounds(activeParts.switch);
+                
+                // Emitter sits ON TOP of Switch
+                if (activeParts.emitter) {
+                    const emBounds = getBounds(activeParts.emitter);
+                    activeParts.emitter.position.y = (swBounds.max + GAP) - emBounds.min;
+                }
+
+                // Sleeve sits BELOW Switch
+                if (activeParts.sleeve) {
+                    const slBounds = getBounds(activeParts.sleeve);
+                    activeParts.sleeve.position.y = (swBounds.min - GAP) - slBounds.max;
+
+                    // Pommel sits BELOW Sleeve
+                    if (activeParts.pommel) {
+                        const newSlBounds = getBounds(activeParts.sleeve);
+                        const pmBounds = getBounds(activeParts.pommel);
+                        activeParts.pommel.position.y = (newSlBounds.min - GAP) - pmBounds.max;
+                    }
+                }
+            }
+        }
+
+        let rotationActive = false;
+        window.toggleRotation = function() {
+            rotationActive = !rotationActive;
+            document.getElementById('rotBtn').innerText = rotationActive ? "Rotate: ON" : "Rotate: OFF";
+        };
+
+        window.resetView = function() {
+            camera.position.set(0, 50, 450);
+            controls.target.set(0, 0, 0);
+        };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (rotationActive) {
+                Object.values(activeParts).forEach(p => { if(p) p.rotation.y += 0.01; });
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize all parts
+        ['emitter', 'switch', 'sleeve', 'pommel'].forEach(c => loadPart(c));
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
