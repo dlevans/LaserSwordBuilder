@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Saber Customizer - Fixed Camera Reset</title>
+    <title>Saber Destiny</title>
     <style>
         /* Existing Styles */
         body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; }
@@ -43,7 +43,7 @@
 <body>
 
     <div id="ui">
-        <div id="path-title">Saber Customizer</div>
+        <div id="path-title">Customizer</div>
 
         <button id="rotateToggle" class="toggle-btn" onclick="toggleRotation()">ROTATE: OFF</button>
 
@@ -73,6 +73,7 @@
             </div>
             <button onclick="loadPart('switch', 'CereXRGBXeno/GLB/CRE_Switch.glb', this)">CRE Switch</button>
             <button onclick="loadPart('switch', 'DutyandResolveXRGBXeno/GLB/DR_Switch_I.glb', this)">DR Switch I</button>
+			<button onclick="loadPart('switch', 'PC/GLB/PC_Switch_I.glb', this)">PC Switch I</button>
         </div>
 
         <div class="category">
@@ -177,7 +178,7 @@
         }
         applyPathTheme();
 
-        // --- Standard Saber Logic (Unchanged) ---
+        // --- Standard Laser Sword Logic (Unchanged) ---
         controls.addEventListener('start', () => { isUserInteracting = true; });
         controls.addEventListener('end', () => { isUserInteracting = false; });
 
@@ -192,7 +193,10 @@
             sectionColors[type] = hex;
             if (activeParts[type]) {
                 activeParts[type].traverse((child) => {
-                    if (child.isMesh) child.material.color.set(hex);
+                    // Only update live color if the part is not textured
+                    if (child.isMesh && !child.material.map) {
+                        child.material.color.set(hex);
+                    }
                 });
             }
         };
@@ -253,7 +257,6 @@
             category.querySelectorAll('button').forEach(btn => btn.classList.remove('active-part'));
             btnElement.classList.add('active-part');
             
-            // Re-apply theme color to the active-part border
             const urlParams = new URLSearchParams(window.location.search);
             const pathType = urlParams.get('type');
             if (pathType === 'jedi') btnElement.style.borderColor = '#3498db';
@@ -261,11 +264,16 @@
             if (pathType === 'gray') btnElement.style.borderColor = '#f1c40f';
 
             if (activeParts[type]) scene.remove(activeParts[type]);
+            
             loader.load(path, (gltf) => {
                 const model = gltf.scene;
                 model.traverse((child) => {
                     if (child.isMesh) {
-                        child.material.color.set(sectionColors[type]);
+                        // NEW LOGIC: Only color if there is NO base color texture
+                        if (!child.material.map) {
+                            child.material.color.set(sectionColors[type]);
+                        }
+                        
                         child.material.metalness = 0.5;
                         child.material.roughness = 0.7;
                     }
