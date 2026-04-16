@@ -11,24 +11,34 @@
             position: sticky; top: 10px; background: #2c3e50; color: white; 
             padding: 15px; border-radius: 8px; margin-bottom: 20px; 
             display: flex; justify-content: space-around; font-weight: bold; border: 1px solid #444;
+            z-index: 10;
         }
         .debug-item span { color: #f1c40f; font-size: 1.2em; }
 
         .question { margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         
         label { cursor: pointer; display: block; margin: 10px 0; padding: 10px; border-radius: 6px; background: #2a2a2a; transition: 0.2s; }
         label:hover { background-color: #3a3a3a; }
         
-        button { background-color: #3498db; color: white; border: none; padding: 15px 24px; cursor: pointer; border-radius: 6px; font-size: 18px; width: 100%; font-weight: bold; text-transform: uppercase; }
-        button:hover { background-color: #2980b9; }
+        button#submit-btn { background-color: #3498db; color: white; border: none; padding: 15px 24px; cursor: pointer; border-radius: 6px; font-size: 18px; width: 100%; font-weight: bold; text-transform: uppercase; }
+        button#submit-btn:hover { background-color: #2980b9; }
 
         /* Results Styles */
         #result-container { text-align: center; }
         #result-image { width: 100%; border-radius: 8px; border: 2px solid #444; margin: 20px 0; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        #result-title { font-size: 2em; margin-bottom: 10px; color: #fff; }
-        #saber-link { display: inline-block; margin-top: 20px; padding: 15px 30px; background: #e74c3c; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.2em; transition: 0.3s; }
-        #saber-link:hover { transform: scale(1.05); box-shadow: 0 0 15px #e74c3c; }
+        #result-title { font-size: 2.5em; margin-bottom: 10px; font-weight: 900; }
+        
+        /* Multi-UI Button Group */
+        .button-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; flex-wrap: wrap; }
+        .saber-choice-btn { 
+            flex: 1; min-width: 200px; padding: 15px 20px; color: white; 
+            text-decoration: none; border-radius: 8px; font-weight: bold; 
+            font-size: 1.1em; transition: 0.3s; text-align: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .saber-choice-btn span { font-size: 0.7em; opacity: 0.8; text-transform: uppercase; margin-bottom: 4px; }
+        .saber-choice-btn:hover { transform: translateY(-3px); filter: brightness(1.2); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -49,9 +59,20 @@
         <div id="result-container" class="hidden">
             <h2 id="result-title"></h2>
             <img id="result-image" src="" alt="Your Path">
-            <p id="result-text"></p>
-            <a id="saber-link" href="/sabers"></a>
-            <p><button onclick="location.reload()" style="background:none; border:1px solid #555; margin-top:30px; font-size:14px; width:auto;">Restart Quiz</button></p>
+            <p id="result-text" style="font-size: 1.2em; margin-bottom: 30px;"></p>
+            
+            <div class="button-group">
+                <a id="link-classic" class="saber-choice-btn" href="#">
+                    <span>Classic UI</span>
+                    <div class="btn-text">Build Lightsaber</div>
+                </a>
+                <a id="link-updated" class="saber-choice-btn" href="#">
+                    <span>Updated UI</span>
+                    <div class="btn-text">Build Lightsaber</div>
+                </a>
+            </div>
+
+            <p><button onclick="location.reload()" style="background:none; border:1px solid #555; margin-top:40px; font-size:14px; width:auto; color:#888; padding: 8px 15px; cursor:pointer;">Restart Quiz</button></p>
         </div>
     </div>
 
@@ -61,7 +82,7 @@
                 q: "Someone has done you wrong. Do you seek revenge?",
                 options: [
                     { text: "Karma comes for us all eventually.", weight: 2 },
-					{ text: "No, I choose forgiveness.", weight: 1 },
+                    { text: "No, I choose forgiveness.", weight: 1 },
                     { text: "Yes, they must feel my wrath.", weight: 3 }
                 ]
             },
@@ -70,14 +91,14 @@
                 options: [
                     { text: "Report them to the instructor.", weight: 1 },
                     { text: "Use the answer key for my own benefit.", weight: 3 },
-					{ text: "Don't say anything, but don't cheat either.", weight: 2 }                    
+                    { text: "Don't say anything, but don't cheat either.", weight: 2 }                    
                 ]
             },
             {
                 q: "What do you want most out of life?",
                 options: [
                     { text: "The freedom to live by my own rules.", weight: 2 },
-					{ text: "To bring peace and order to the galaxy.", weight: 1 },                    
+                    { text: "To bring peace and order to the galaxy.", weight: 1 },                    
                     { text: "To be powerful enough to never be controlled.", weight: 3 }
                 ]
             },
@@ -85,7 +106,7 @@
                 q: "A conflict breaks out near you. Your first instinct is to:",
                 options: [
                     { text: "Strike first to end it on my terms.", weight: 3 },
-					{ text: "De-escalate and protect the innocent.", weight: 1 },
+                    { text: "De-escalate and protect the innocent.", weight: 1 },
                     { text: "Wait and see which side is right.", weight: 2 }                  
                 ]
             },
@@ -145,7 +166,7 @@
                 jedi: {
                     title: "JEDI KNIGHT",
                     desc: "You are a beacon of light. Your path is one of peace and service.",
-                    btn: "Complete Your Training",
+                    btn: "Complete Training",
                     color: "#3498db",
                     img: "images/good/good.png",
                     type: "jedi"
@@ -153,7 +174,7 @@
                 gray: {
                     title: "GRAY JEDI",
                     desc: "You walk the thin line of balance, fulfilling your own destiny.",
-                    btn: "Fulfill Your Destiny",
+                    btn: "Seek Balance",
                     color: "#f1c40f",
                     img: "images/neutral/neutral.png",
                     type: "gray"
@@ -161,7 +182,7 @@
                 sith: {
                     title: "SITH LORD",
                     desc: "Your passion has freed you. Embrace the power of the dark side.",
-                    btn: "Embrace Your Power",
+                    btn: "Claim Power",
                     color: "#e74c3c",
                     img: "images/evil/evil.png",
                     type: "sith"
@@ -170,23 +191,30 @@
 
             let fate = average <= 1.4 ? results.jedi : (average <= 2.4 ? results.gray : results.sith);
 
-            // UI Transitions
+            // Hide Quiz & Debug
             document.getElementById('quiz-ui').classList.add('hidden');
             document.getElementById('debug-bar').classList.add('hidden');
             
-            const container = document.getElementById('result-container');
-            container.classList.remove('hidden');
+            // Show Results
+            const resultBox = document.getElementById('result-container');
+            resultBox.classList.remove('hidden');
+            
             document.getElementById('result-title').innerText = fate.title;
             document.getElementById('result-title').style.color = fate.color;
             document.getElementById('result-image').src = fate.img;
             document.getElementById('result-text').innerText = fate.desc;
             
-            const link = document.getElementById('saber-link');
-            link.innerText = fate.btn;
-            link.style.backgroundColor = fate.color;
-            
-            // Fixed: Removed leading slash and added .html extension
-            link.href = `sabers.html?type=${fate.type}`;
+            // Configure Classic UI Button
+            const classicBtn = document.getElementById('link-classic');
+            classicBtn.href = `sabers.html?type=${fate.type}`;
+            classicBtn.style.backgroundColor = "#444"; // Slate grey for neutral choice
+            classicBtn.querySelector('.btn-text').innerText = fate.btn;
+
+            // Configure Updated UI Button
+            const updatedBtn = document.getElementById('link-updated');
+            updatedBtn.href = `sabers2.html?type=${fate.type}`;
+            updatedBtn.style.backgroundColor = fate.color; // Thematic color for primary choice
+            updatedBtn.querySelector('.btn-text').innerText = fate.btn;
         });
     </script>
 </body>
