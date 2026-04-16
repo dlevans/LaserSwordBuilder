@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saber Destiny - Shared Forge</title>
+    <title>Saber Destiny - Ignition Forge</title>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; touch-action: none; }
         canvas { display: block; }
@@ -32,7 +32,6 @@
         }
         .util-btn.active { border-color: #0f0; color: #0f0; box-shadow: 0 0 8px rgba(0,255,0,0.4); }
 
-        /* --- Floating Side Navigation --- */
         #gui {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: flex; flex-direction: column; justify-content: center;
@@ -51,7 +50,6 @@
             text-shadow: 0 0 12px #000; transition: opacity 0.3s;
         }
 
-        /* --- Bottom Color Bar --- */
         #color-bar {
             position: absolute; bottom: 35px; left: 0; width: 100%;
             display: flex; justify-content: center; gap: clamp(15px, 6vw, 45px); 
@@ -74,6 +72,7 @@
         <div id="header" class="hud-item">SABER DESTINY</div>
         <div id="top-utils" class="hud-item">
             <button id="rotBtn" class="util-btn active" onclick="toggleRotation()">Rotate</button>
+            <button id="bladeBtn" class="util-btn active" onclick="toggleBlade()">Blade</button>
             <button id="labelBtn" class="util-btn active" onclick="toggleLabels()">Labels</button>
             <button id="hudBtn" class="util-btn active" onclick="toggleHUD()">HUD</button>
             <button id="shareBtn" class="util-btn" onclick="shareSaber()">Share</button>
@@ -105,6 +104,7 @@
         <div class="color-item"><div class="swatch" id="sw-switch"><input type="color" id="input-switch" oninput="applyColor('switch', this.value)"></div><span class="hex-val" id="hex-switch">#FFFFFF</span></div>
         <div class="color-item"><div class="swatch" id="sw-sleeve"><input type="color" id="input-sleeve" oninput="applyColor('sleeve', this.value)"></div><span class="hex-val" id="hex-sleeve">#FFFFFF</span></div>
         <div class="color-item"><div class="swatch" id="sw-pommel"><input type="color" id="input-pommel" oninput="applyColor('pommel', this.value)"></div><span class="hex-val" id="hex-pommel">#FFFFFF</span></div>
+        <div class="color-item"><div class="swatch" id="sw-blade"><input type="color" id="input-blade" value="#3498db" oninput="applyColor('blade', this.value)"></div><span class="hex-val" id="hex-blade">#3498DB</span></div>
     </div>
 
     <script type="importmap">
@@ -124,8 +124,8 @@
         };
 
         const activeIndices = { emitter: 0, switch: 0, sleeve: 0, pommel: 0 };
-        const activeParts = { emitter: null, switch: null, sleeve: null, pommel: null };
-        const sectionColors = { emitter: '#ffffff', switch: '#ffffff', sleeve: '#ffffff', pommel: '#ffffff' };
+        const activeParts = { emitter: null, switch: null, sleeve: null, pommel: null, blade: null };
+        const sectionColors = { emitter: '#ffffff', switch: '#ffffff', sleeve: '#ffffff', pommel: '#ffffff', blade: '#3498db' };
         const GAP = 8.0;
 
         const scene = new THREE.Scene();
@@ -135,7 +135,8 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 2.0;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.body.appendChild(renderer.domElement);
 
@@ -161,6 +162,7 @@
                 url.searchParams.set(`c_${p.slice(0,2)}`, sectionColors[p].replace('#', ''));
                 url.searchParams.set(`p_${p.slice(0,2)}`, activeIndices[p]);
             });
+            url.searchParams.set('c_bl', sectionColors.blade.replace('#', ''));
 
             navigator.clipboard.writeText(url.toString()).then(() => {
                 const btn = document.getElementById('shareBtn');
@@ -177,14 +179,46 @@
             document.getElementById(`input-${type}`).value = hex;
 
             if (activeParts[type]) {
-                activeParts[type].traverse(child => {
-                    if (child.isMesh && !child.material.map) {
-                        child.material.color.set(hex);
-                        child.material.metalness = 0.5;
-                        child.material.roughness = 0.7;
-                    }
-                });
+                if (type === 'blade') {
+                    activeParts.blade.children[0].material.color.set(hex);
+                    activeParts.blade.children[0].material.emissive.set(hex);
+                } else {
+                    activeParts[type].traverse(child => {
+                        if (child.isMesh && !child.material.map) {
+                            child.material.color.set(hex);
+                            child.material.metalness = 0.5; // Adjusted as requested
+                            child.material.roughness = 0.75; // Adjusted as requested
+                        }
+                    });
+                }
             }
+        };
+
+        function createBlade() {
+            const group = new THREE.Group();
+            const outerMat = new THREE.MeshStandardMaterial({
+                color: sectionColors.blade,
+                emissive: sectionColors.blade,
+                emissiveIntensity: 5.0,
+                transparent: true,
+                opacity: 0.5,
+                metalness: 0,
+                roughness: 1
+            });
+            const outer = new THREE.Mesh(new THREE.CapsuleGeometry(9, 800, 4, 32), outerMat);
+            const inner = new THREE.Mesh(new THREE.CapsuleGeometry(5, 802, 4, 32), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            group.add(outer, inner);
+            scene.add(group);
+            activeParts.blade = group;
+        }
+
+        window.toggleBlade = () => {
+            if(!activeParts.blade) return;
+            activeParts.blade.visible = !activeParts.blade.visible;
+            document.getElementById('bladeBtn').classList.toggle('active', activeParts.blade.visible);
+            
+            // Recenter/Reset view based on blade state
+            window.resetView();
         };
 
         window.cyclePart = (cat, dir) => {
@@ -201,8 +235,8 @@
                 activeParts[cat].traverse(c => {
                     if (c.isMesh) {
                         if (!c.material.map) c.material.color.set(sectionColors[cat]);
-                        c.material.metalness = 0.5;
-                        c.material.roughness = 0.7;
+                        c.material.metalness = 0.5; // Adjusted as requested
+                        c.material.roughness = 0.75; // Adjusted as requested
                     }
                 });
                 scene.add(activeParts[cat]);
@@ -219,25 +253,54 @@
         }
 
         function updateAllPositions() {
+            // Helper to get fresh bounding box after parts move
+            const getBox = (obj) => new THREE.Box3().setFromObject(obj);
+
+            // 1. POSITION THE HILT PARTS
             if (activeParts.switch) {
                 centerPart(activeParts.switch);
-                activeParts.switch.position.y = -new THREE.Box3().setFromObject(activeParts.switch).min.y;
+                const swBox = getBox(activeParts.switch);
+                activeParts.switch.position.y = -swBox.min.y;
             }
+
             if (activeParts.sleeve) {
                 centerPart(activeParts.sleeve);
-                activeParts.sleeve.position.y = -GAP - new THREE.Box3().setFromObject(activeParts.sleeve).max.y;
+                const slBox = getBox(activeParts.sleeve);
+                activeParts.sleeve.position.y = -GAP - slBox.max.y;
             }
+
             if (activeParts.emitter) {
                 centerPart(activeParts.emitter);
-                let swTop = activeParts.switch ? new THREE.Box3().setFromObject(activeParts.switch).max.y : 40;
-                activeParts.emitter.position.y = (swTop + GAP) - new THREE.Box3().setFromObject(activeParts.emitter).min.y;
+                const eBox = getBox(activeParts.emitter);
+                // Stack on top of switch
+                let switchTop = activeParts.switch ? getBox(activeParts.switch).max.y : 40;
+                activeParts.emitter.position.y = (switchTop + GAP) - eBox.min.y;
             }
+
             if (activeParts.pommel) {
                 centerPart(activeParts.pommel);
-                let slBot = activeParts.sleeve ? new THREE.Box3().setFromObject(activeParts.sleeve).min.y : -60;
-                activeParts.pommel.position.y = (slBot - GAP) - new THREE.Box3().setFromObject(activeParts.pommel).max.y;
+                const pBox = getBox(activeParts.pommel);
+                // Stack below sleeve
+                let sleeveBottom = activeParts.sleeve ? getBox(activeParts.sleeve).min.y : -60;
+                activeParts.pommel.position.y = (sleeveBottom - GAP) - pBox.max.y;
+            }
+
+            // 2. POSITION THE BLADE (Beam)
+            if (activeParts.blade && activeParts.emitter) {
+                const eBoxFinal = getBox(activeParts.emitter);
+                
+                // Align blade bottom to emitter bottom
+                // Formula: Emitter Bottom + half-height of blade (400)
+                activeParts.blade.position.y = eBoxFinal.min.y + 410;
+                activeParts.blade.position.x = 0;
+                activeParts.blade.position.z = 0;
             }
         }
+
+        // 3. UPDATE MATERIAL SETTINGS (Inside your loadPart or applyColor functions)
+        // Ensure you are using these values for that brushed/matte look:
+        // child.material.metalness = 0.5;
+        // child.material.roughness = 0.75;
 
         window.toggleLabels = () => {
             const labels = document.querySelectorAll('.label-text');
@@ -261,16 +324,24 @@
         };
 
         window.resetView = () => {
-            camera.position.set(0, 0, 270);
-            controls.target.set(0, 0, 0);
-            controls.maxDistance = 300;
-            controls.minDistance = 200;
+            if (activeParts.blade && activeParts.blade.visible) {
+                // View with blade
+                camera.position.set(0, 40, 450);
+                controls.target.set(0, 100, 0);
+                controls.maxDistance = 800;
+                controls.minDistance = 100;
+            } else {
+                // View hilt only - centered
+                camera.position.set(0, 0, 270);
+                controls.target.set(0, 0, 0);
+                controls.maxDistance = 400;
+                controls.minDistance = 150;
+            }
         };
 
         function initializeForge() {
             const urlParams = new URLSearchParams(window.location.search);
             const pathTheme = urlParams.get('type');
-            
             const themes = {
                 'jedi': { title: 'Jedi Forge', color: '#3498db', bg: '#000b1a', def: '#3498db' },
                 'sith': { title: 'Sith Armory', color: '#e74c3c', bg: '#1a0000', def: '#e74c3c' },
@@ -278,13 +349,18 @@
             };
 
             let baseColor = '#ffffff';
+            let bladeDef = '#3498db';
             if (pathTheme && themes[pathTheme]) {
                 const t = themes[pathTheme];
                 document.getElementById('header').innerText = t.title;
                 document.getElementById('header').style.color = t.color;
                 scene.background = new THREE.Color(t.bg);
                 baseColor = t.def;
+                bladeDef = t.def;
             }
+
+            const bladeCol = urlParams.get('c_bl');
+            window.applyColor('blade', bladeCol ? '#' + bladeCol : bladeDef);
 
             ['emitter', 'switch', 'sleeve', 'pommel'].forEach(p => {
                 activeIndices[p] = parseInt(urlParams.get(`p_${p.slice(0,2)}`)) || 0;
@@ -294,6 +370,7 @@
             });
         }
 
+        createBlade();
         initializeForge();
         window.resetView();
         animate();
